@@ -20,6 +20,6 @@ echo $out/fast5_$dircount
 
 mkdir fast5_$dircount
 mv $i fast5_$dircount/
-  sbatch rebasecalling_lsk109.sh $PWD/fast5_$dircount/ $out/fast5_$dircount/
+  sbatch guppy_basecaller_lsk109.sh $PWD/fast5_$dircount/ $out/fast5_$dircount/
   let dircount+=1
 done

@@ -1,0 +1,146 @@
+---
+title: "Investigating the Nanopore fast5 files from Seal MinION run"
+output: html_notebook
+---
+
+This notebook is for the initial investigation of fast5 files from a MinION run on a grey seal sample that predates my PhD. The data generated hasn't been explored in great detail outside of some exploratory MinKNOW/WIMP. I want to analyse the data in greater detail which will require first investigating the condition of the pass/skip/fail fast5 files generated before rebasecalling all the pass/skip/fail fast5 files on the grufffalo cluster using my own bash scripts and doing further analysis such as BLAST etc.
+
+This notebook is solely for the initial investigation of the pass/skip/fail fast5 files generated. As there are so many fast5 files generated, I have only taken one fast5 file from the first subdirectory of each pass/skip/fail directory
+
+
+Part One: Installing BiocManager and rhdf5 package (I did this in console as only needed to be installed once)
+
+```{r}
+#if (!require("BiocManager", quietly = TRUE))
+   # install.packages("BiocManager")
+#BiocManager::install(version = "3.14")
+#BiocManager::install("rhdf5")
+```
+
+
+r setup means that when you run this scipt in its entirety, the line of code under r setup must run first (for example if you had library function to load in packages etc.)
+
+```{r setup}
+library(rhdf5)
+```
+
+
+Loading the data (one fast5 file from the first subdirectory in each pass/skip/fail directory)
+
+*First fast5 file I am checking is one from the pass directory*:
+
+```{r loadingdata}
+h5ls("fast5/minions_imac_moredun_net_20180123_FAH41635_MN24448_sequencing_run_Seal_mum_pool_30926_read_4095_ch_442_strand.fast5")
+```
+
+
+Looking at the Analyses on this **pass** fast5 file:
+
+```{r}
+#h5ls("fast5/minions_imac_moredun_net_20180123_FAH41635_MN24448_sequencing_run_Seal_mum_pool_30926_read_4095_ch_442_strand.fast5")
+
+mydata <- h5read("fast5/minions_imac_moredun_net_20180123_FAH41635_MN24448_sequencing_run_Seal_mum_pool_30926_read_4095_ch_442_strand.fast5", "/Analyses")
+
+mydata
+```
+There are 4095 reads in this file, from channel 442.
+
+
+Looking at the raw signal on this **pass** fast5 file:
+
+```{r}
+#h5ls("fast5/minions_imac_moredun_net_20180123_FAH41635_MN24448_sequencing_run_Seal_mum_pool_30926_read_4095_ch_442_strand.fast5")
+
+raw <- h5read("fast5/minions_imac_moredun_net_20180123_FAH41635_MN24448_sequencing_run_Seal_mum_pool_30926_read_4095_ch_442_strand.fast5", "/Raw")
+
+raw
+```
+These numbers are the individual pico-amp signals measured by the Nanopore device.
+
+
+
+h5dump -- Enables a user to examine all the contents of an HDF5 file in one go:
+
+```{r}
+h5dump ("fast5/minions_imac_moredun_net_20180123_FAH41635_MN24448_sequencing_run_Seal_mum_pool_30926_read_4095_ch_442_strand.fast5", all = TRUE)
+```
+
+
+
+
+*Now repeat the above code, using one of the skip fast5 files*:
+
+
+```{r loadingdata}
+h5ls("fast5/minions_imac_moredun_net_20180123_FAH41635_MN24448_sequencing_run_Seal_mum_pool_30926_read_14515_ch_213_strand.fast5")
+```
+
+
+Looking at the Analyses on this **skip** fast5 file:
+
+```{r}
+#h5ls("fast5/minions_imac_moredun_net_20180123_FAH41635_MN24448_sequencing_run_Seal_mum_pool_30926_read_14515_ch_213_strand.fast5")
+
+mydata <- h5read("fast5/minions_imac_moredun_net_20180123_FAH41635_MN24448_sequencing_run_Seal_mum_pool_30926_read_14515_ch_213_strand.fast5", "/Analyses")
+
+mydata
+```
+No read number is provided (which makes sense if it is a skipped file).
+
+Looking at the raw signal on this **skip** fast5 file:
+
+```{r}
+#h5ls("fast5/minions_imac_moredun_net_20180123_FAH41635_MN24448_sequencing_run_Seal_mum_pool_30926_read_14515_ch_213_strand.fast5")
+
+raw <- h5read("fast5/minions_imac_moredun_net_20180123_FAH41635_MN24448_sequencing_run_Seal_mum_pool_30926_read_14515_ch_213_strand.fast5", "/Raw")
+
+raw
+```
+
+
+
+
+h5dump -- Enables a user to examine all the contents of an HDF5 file in one go:
+
+```{r}
+h5dump ("fast5/minions_imac_moredun_net_20180123_FAH41635_MN24448_sequencing_run_Seal_mum_pool_30926_read_14515_ch_213_strand.fast5", all = TRUE)
+```
+
+*And finally, examining one of the fail fast5 files*
+
+
+```{r loadingdata}
+h5ls("fast5/minions_imac_moredun_net_20180123_FAH41635_MN24448_sequencing_run_Seal_mum_pool_30926_read_198632_ch_35_strand.fast5")
+```
+
+
+Looking at the Analyses on this **fail** fast5 file:
+
+```{r}
+#h5ls("fast5/minions_imac_moredun_net_20180123_FAH41635_MN24448_sequencing_run_Seal_mum_pool_30926_read_198632_ch_35_strand.fast5")
+
+mydata <- h5read("fast5/minions_imac_moredun_net_20180123_FAH41635_MN24448_sequencing_run_Seal_mum_pool_30926_read_198632_ch_35_strand.fast5", "/Analyses")
+
+mydata
+```
+There are far more reads in this fail file, 198,632, from channel 35.
+
+
+Looking at the raw signal on this **fail** fast5 file:
+
+```{r}
+#h5ls("fast5/minions_imac_moredun_net_20180123_FAH41635_MN24448_sequencing_run_Seal_mum_pool_30926_read_198632_ch_35_strand.fast5")
+
+raw <- h5read("fast5/minions_imac_moredun_net_20180123_FAH41635_MN24448_sequencing_run_Seal_mum_pool_30926_read_198632_ch_35_strand.fast5", "/Raw")
+
+raw
+```
+
+The raw signal doesn't appear to differ wildly from the numbers seen in the pass and skip fast5 file.
+
+
+h5dump -- Enables a user to examine all the contents of an HDF5 file in one go:
+
+```{r}
+h5dump ("fast5/minions_imac_moredun_net_20180123_FAH41635_MN24448_sequencing_run_Seal_mum_pool_30926_read_198632_ch_35_strand.fast5", all = TRUE)
+```

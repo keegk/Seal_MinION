@@ -68,7 +68,7 @@ The blast script I used is called blast7.sh (the 7 just referes to the 7th versi
 
 **Bash script for concatenating multiple blast.txt files into one and compressing this**
 
-Once I had run all the small BLAST jobs ~200 times (I had about 200 individual fasta files from my fasta_split.sh script above) I then wanted to concatenate these all back into one large blast text file and also compress this for storage. To do this I wrote the script concat.blast.sh which uses a for loop to find any .txt files, concatenates them into one text file and the using pigz (as recommended by the cluster help page) to compress this file. Compressed blast text reulst file is still approx 25Gb in size. I can then use this in R to pick out most common species from seal samples etc. and further downstream analsysis.
+Once I had run all the small BLAST jobs ~200 times (I had about 200 individual fasta files from my fasta_split.sh script above) I then wanted to concatenate these all back into one large blast text file and also compress this for storage. To do this I wrote the script concat.blast.sh (renamed concat_blast_text_files.sh) which uses a for loop to find any .txt files, concatenates them into one text file and the using pigz (as recommended by the cluster help page) to compress this file. Compressed blast text reulst file is still approx 25Gb in size. I can then use this in R to pick out most common species from seal samples etc. and further downstream analsysis.
 
 **Location of files on cluster**
 

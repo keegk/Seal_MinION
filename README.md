@@ -93,3 +93,6 @@ b7| wc -l**). Three failed fastq files tested all returned 0 lines so I know the
 
 We use two scripts to parse the concantenated blast text files from any of our queried databases (NCBI, refseq,CARD) into an R friendly text file. The reason for parsing into R is because the concatenated BLAST text files are very big (apart from the CARD text file) and so you cant just load the concatenated text file straight into R. The parse_into_R.sh bash script is used to activate the environment that has R, and then calls an R script that parses it through, filtering out reads based on certain criteria. Note that this repo currently has two versions of this R script, parsefilter_blasttable.R and parsefilter_blasttable_v2.1.R. The latter is the script that I use, as there is an additional bit of code on line 121-123 that adds the columns from the blast search into the parsed text file for ease of reading in R. The former version does not carry over the column names from Blast into the resulting parsed text file.
 
+**Thesis results**
+
+In the notebook grey_seal_thesis_taxa_2025.Rmd, the final taxa (stringent filtering) is available and saved as the file rey_seal_october2024_taxa_stringent2025. This has the exact same taxa filtering as all other results chapters (proportional gaps/mismatches at 0.10, weighted mean etc).

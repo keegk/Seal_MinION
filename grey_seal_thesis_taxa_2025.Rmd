@@ -1,0 +1,128 @@
+---
+title: "NCBI seal results 31.03.25"
+output: html_notebook
+---
+```{r setup}
+library(tidyverse)
+library(ggplot2)
+```
+
+```{r}
+ncbi_oct24 <- read.table("parsed_gs_blast28.10.24.txt", sep=",",  header = TRUE) #reading in the ncbi blast results
+
+#ncbi_relaxed <- read.table("ncbi_relaxed_filtering_16_4.24.txt", sep = ",", header = TRUE)
+
+ncbi_oct24 <-ncbi_oct24 %>% rename(species=subject.sci.names)
+#ncbi_relaxed <- ncbi_relaxed %>% rename(species=subject.sci.names)
+save(ncbi_oct24, file = "ncbi_oct24") #saving the file for quick reloading later on
+load("ncbi_oct24")
+
+# just filtering this dataset to check if reads that i am getting hits for with amr genes are also present in this dataset as currently these reads of interest have no taxa id assigned to them IN grey_seal_blastn_AMR_taxa_hits_loose_weighted_mean.csv (Nov 2024)
+
+amr_gene_read_IDS <- ncbi_oct24 %>%
+                    filter(query.acc %in% c("37707c41-4bbb-4a8a-83cf-a1abb3732aab", "e9c3fa42-110d-4e1c-a538-1dbae23e262f", "0161b503-5a02-4aa3-be64-6f5b2ccfd4e6", "23c5c7cd-c58c-4025-ad6b-fd385e9d325b", "c1bff406-fb0c-4ee3-a3a6-ffb5511ae0da")) #these are the read ID's that hit to acrB, acrF, acrE, CPXA and CRP from my word doc schematics of amr gene alignments in C:\Users\keegk\OneDrive - moredungroup\Karen Keegan\Writing\Results chapters\chapter 2 bioinformatics\Grey_seal_results
+```
+
+
+how many reads are in my ncbi dataframe (removing duplicate hits of reads so that I can see how man reads were basecalled compared to epi2me)
+
+```{r}
+
+
+
+#classified reads
+
+classified_reads <- ncbi_oct24 %>%
+            distinct(query.acc)
+
+#what are the NA reads
+  
+NA_reads <- ncbi_oct24 %>%
+            filter(species == "NA")
+
+```
+
+Setting up a table with taxa info to accompany the ncbi reads
+
+```{r}
+#install.packages("taxonomizr")
+library(taxonomizr)
+prepareDatabase(getAccessions = FALSE) # name is "nameNode.sqlite"
+taxaID <- as.vector(ncbi_oct24$subject.tax.ids)
+#print(taxaID)
+#taxa_id <- data.frame(combined_blast$subject.tax.ids)
+#taxa_id <- as.data.frame(getTaxonomy(taxaID, sqlFile = "nameNode.sqlite",  desiredTaxa = c("superkingdom", "phylum", "genus", "species")))
+taxa_oct2024<-getTaxonomy(taxaID,sqlFile = "nameNode.sqlite", sep )
+#print(taxa)
+save(taxa_oct2024, file = "taxa_oct2024") #saving the file for quick reloading later on
+load("taxa_oct2024")
+```
+
+
+ converting row names to column using rownames_to_column:
+```{r}
+taxa_oct2024 <- data.frame(taxa_oct2024)
+taxa1_oct2024 <- taxa_oct2024 %>%
+      select(superkingdom, genus, species) #selecting only superkingdom, genus and the linker column species because trying to merge the full ncbi and taxa dfs results in too much memory required/fails to execute... "Match procedure results in an allocation larger than 2^31-1 elements."
+```
+
+
+
+And finally merging both taxonomy table and blast table using join
+```{r}
+taxa1_distinct_oct2024 <- distinct(taxa1_oct2024)
+#ncbi_taxa <- left_join(x = ncbi, y = taxa1_distinct, by ="species") 
+
+ncbi_taxa_oct2024 <- full_join(x = ncbi_oct24, y = taxa1_distinct_oct2024, by ="species") #lets go with the full join option
+
+save(ncbi_taxa_oct2024, file = "ncbi_taxa_oct2024")
+#saving the file for quick reloading later on
+load("ncbi_taxa_oct2024")
+
+#searching for specific reads that were found in amr gene hits but are coming up blank for taxa hits:
+
+amr_gene_read_IDS_taxa <- ncbi_taxa_oct2024 %>% 
+                      filter (query.acc %in% c("37707c41-4bbb-4a8a-83cf-a1abb3732aab", "23c5c7cd-c58c-4025-ad6b-fd385e9d325b", "e9c3fa42-110d-4e1c-a538-1dbae23e262f", "0161b503-5a02-4aa3-be64-6f5b2ccfd4e6", "c1bff406-fb0c-4ee3-a3a6-ffb5511ae0da")) #all of these genes are here - only 23c5c7cd-c58c-4025-ad6b-fd385e9d325b will be retained at later filtering stages because it is the only one that has gaps less than 5!
+
+```
+
+Filtering the reads in the same way as culture vs nan - October 2024, this is the stringent filtering with weighted means and changes to gap proportion and mismatch proportion:
+
+```{r}
+
+  grey_seal_october2024_taxa_stringent2025 <-  ncbi_taxa_oct2024 %>%
+                          filter(superkingdom %in% c("Bacteria", "Eukaryota")) %>%
+ # filter(gaps <= 5) %>% #and across the whole dataset, filter out any reads that have gaps more than 5 and
+              # filter(mismatches <= 200) %>% #mismatches more than 200
+  mutate(proportional_gap_number = gaps/alignment.length) %>%# 7.11.24 adding this as i think gaps set at less than 5 is too harsh for longer reads 
+                mutate(proportional_mismatch_number = mismatches/alignment.length) %>% # 7.11.24 adding this as i think gaps set at less than 5 is too harsh for longer reads 
+ # filter(gaps <= 5) %>% #and across the whole dataset, filter out any reads that have gaps more than 5 and
+               #filter(mismatches <= 200) %>% #mismatches more than 200
+                          filter(proportional_gap_number <= 0.10) %>% #here i am saying that there can be up to and including 10% gaps in the alignment 
+                           filter(proportional_mismatch_number <= 0.10) %>%
+              mutate(alignment.prop = alignment.length/query.length) %>%
+              filter(alignment.prop >= 0.25) %>%  # and filter reads to retain only those where at least a quarter of the read is aligning to the subject hit   
+              filter(query.length >= 500) %>%
+              filter(subject.length >= 100) %>%
+                           mutate(species.y = sapply(str_split(species, " "), function(x) paste(x[1:2], collapse = " "))) %>% #this bit of code is just to generate a column called species.y which i have in my other datasets and which gets filtered on later in this block of code
+                          group_by (query.acc, subject.tax.ids) %>% # FILTERING STEP 1: by grouping the read with subject tax ids, if the same read hits to multiple species/taxa, all these taxa hits are retained for that read
+            
+               mutate(evalue_nonzero = ifelse(evalue == 0, 1, evalue), 
+                      relative_evalue = ifelse(evalue == 0, 1, min(evalue_nonzero)/evalue_nonzero)) %>%
+              mutate(relative_alignment_length = alignment.length/max(alignment.length)) %>%
+              mutate(alignment_count = n()) %>% #taxon alignment count within a read 
+              
+              ungroup() %>%
+              group_by(query.acc) %>%
+             
+              mutate(relative_count = alignment_count/n()) %>% #proportion of read alignments to a taxon
+               mutate(weight_score = relative_evalue*relative_alignment_length*(percent.identity/100)) %>%
+             filter(weight_score == max(weight_score)) %>%
+              filter(relative_count == max(relative_count)) %>%
+              slice_sample(n=1) %>%
+              ungroup()
+
+save(grey_seal_october2024_taxa_stringent2025, file = "grey_seal_october2024_taxa_stringent2025")
+#saving the file for quick reloading later on
+load("grey_seal_october2024_taxa_stringent2025")
+```

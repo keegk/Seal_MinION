@@ -1,0 +1,98 @@
+---
+title: "Grey seal taxa and AMR/MGE results for thesis March 2025"
+output: html_notebook
+---
+
+#load in taxa results (stringent)
+
+```{r}
+
+load("grey_seal_october2024_taxa_stringent2025")
+```
+
+Load in AMR BLASTn results:
+
+```{r}
+#reading in the blastn file
+CARD <-  read.table("cat_CARD_31.5.24.txt", sep="",  header = FALSE) #now with bitscores included
+
+colnames(CARD) <- c("subject.sci.names","query.acc","subject.acc", "percent.identity", "coverage", "coverage_hsp", "alignment.length", "mismatches","gap.opens", "gaps", "subject.length", "query.length", "q.start", "q.end", "s.start", "s.end", "evalue", "subject.tax.ids", "bitscore")
+
+acc_df <- CARD %>%
+        mutate(Accession = str_extract(subject.acc, "(?<=ARO:)[0-9]+")) #Here I have to use V3 (column 3) as the columns don't have names (blast text files didn't retain these)
+
+#reading in the snps file
+snps <- read.table("CARD_snps.txt", sep = "\t" , header = TRUE) #separate columns by tab
+
+snps$Accession <- as.character(snps$Accession)
+
+
+#the final blastn dataset
+
+blastn_CARD_2025 <- left_join(acc_df, snps, by = "Accession", relationship = "many-to-many") # adding all matched columns in snps to acc_df, using the column name they both have in common, "Accession". Note I had to add the many to many relationship argument because in both datasets, there are multiple copies of the same accession number.
+
+
+
+
+blastn_CARD_grey_seal2025 <- blastn_CARD_2025 %>%
+     mutate(subject.alignment.frac = alignment.length/subject.length, #this gives you subject coverage, the % of the target amr gene that is covered by the query read. This is the original coverage metric we want, set to 60%
+         query.alignment.frac = alignment.length/query.length) %>%
+        filter(percent.identity >= 80, subject.alignment.frac >= .6)#still not quite sure how this fraction works but including for now. Also set this at 60% in the next filtering stage
+
+save(blastn_CARD_grey_seal2025, file = "blastn_CARD_grey_seal2025") #saving the file for quick reloading later on
+load("blastn_CARD_grey_seal2025") #load the saved file      
+
+```
+
+Load in AMR Blastx results:
+
+```{r}
+CARD_blastx <-  read.table("grey_seal_blastx_CARD_20.5.24.txt", sep="",  header = FALSE) 
+
+colnames(CARD_blastx) <- c("subject.sci.names","query.acc","subject.acc", "percent.identity", "coverage", "coverage_hsp", "alignment.length", "mismatches","gap.opens", "gaps", "subject.length", "query.length", "q.start", "q.end", "s.start", "s.end", "evalue", "subject.tax.ids", "bitscore")
+
+
+CARD_blastx  <- CARD_blastx %>%
+        mutate(Accession = str_extract(subject.acc, "(?<=ARO:)[0-9]+")) #Here I have to use V3 (column 3) as the columns don't have names (blast text files didn't retain these)
+
+#reading in the snps file
+snps <- read.table("CARD_snps.txt", sep = "\t" , header = TRUE) #separate columns by tab
+
+snps$Accession <- as.character(snps$Accession)
+
+
+#the final blastn dataset
+
+blastx_CARD_2025 <- left_join(CARD_blastx, snps, by = "Accession", relationship = "many-to-many") # adding all matched columns in snps to acc_df, using the column name they both have in common, "Accession". Note I had to add the many to many relationship argument because in both datasets, there are multiple copies of the same accession number.
+
+blastx_CARD_2025<- blastx_CARD_2025 %>%
+     mutate(subject.alignment.frac = alignment.length/subject.length, #this gives you subject coverage, the % of the target amr gene that is covered by the query read. This is the original coverage metric we want, set to 60%
+         query.alignment.frac = alignment.length/query.length) %>%
+        filter(percent.identity >= 80, subject.alignment.frac >= .6)#still not quite sure how this fraction works but including for now. Also set this at 60% in the next filtering stage
+
+```
+
+Load in CARD RGI results:
+
+```{r}
+grey_seal_RGI <- read.delim(file = "concatenated_seal_loose_rgi.txt", sep="\t",  header = TRUE)
+
+grey_seal_RGI_ph_hits <- grey_seal_RGI %>%
+           filter(Model_type == "protein homolog model")  #making sure I only get protein homolog model hits, I didnt set this in blastn, as all my results were NA for model type, so they would have been lost from the dataset if I had set the model type)
+            #distinct(Contig, .keep_all=TRUE) 
+```
+
+Load in resfinder results:
+
+```{r}
+grey_seal_resfinder <-  read.table("cat_res_finder_coverage_21.3.24.txt", sep="",  header = FALSE) 
+
+
+```
+
+Load in MGE results:
+
+```{r}
+
+      
+```

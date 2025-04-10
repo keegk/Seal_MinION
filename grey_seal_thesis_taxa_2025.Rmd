@@ -126,3 +126,98 @@ save(grey_seal_october2024_taxa_stringent2025, file = "grey_seal_october2024_tax
 #saving the file for quick reloading later on
 load("grey_seal_october2024_taxa_stringent2025")
 ```
+Summarise how many bacterial phyla in the grey seal sample - stringent
+
+```{r fig.align="centre", fig.width = 20, fig.height = 15, dpi=300}
+#install.packages("RColorBrewer")                   # Install RColorBrewer package
+library("RColorBrewer") 
+library("ggplot2")
+#display.brewer.all(colorblindFriendly = TRUE) gives you codes for all the colour blind friendly colour templates
+
+genus_prop_stringent <- grey_seal_october2024_taxa_stringent2025 %>% 
+  filter(superkingdom == "Bacteria") %>%
+  group_by(genus) %>%
+  summarise(genus_count = n()) %>%
+  mutate(prop =prop.table(genus_count)) %>%
+  ungroup() %>%
+  arrange(desc(prop)) %>%
+  mutate(genus = replace_na(genus, "Unassigned")) %>%
+  mutate(genus = factor(genus, levels = unique(genus)))
+
+#genus_prop_stringent
+  
+
+genus_prop_stringent %>% 
+ # filter(prop > 0.002) %>% #filter to phyla that are present at least 0.2% in the data
+  mutate(genus= if_else(prop < 0.001, "Other", genus)) %>%  #if the proporion of the phyla is less than 0.2%, then put all these phyla as 'other'\
+  ggplot(aes(x=genus, y=prop, fill= genus_count)) +
+    geom_col() +
+    labs(x="Bacterial Genera", y="Proportion", fill = "Number of Genera") +
+  theme(text = element_text(size=25), axis.text.x = element_text(angle = 90), axis.text.y = element_text(angle = 90),
+         # Remove panel border
+  panel.border = element_blank(),  
+  # Remove panel grid lines
+  panel.grid.major = element_blank(),
+  panel.grid.minor = element_blank(),
+  # Remove panel background
+  panel.background = element_blank(),
+  # Add axis line
+  axis.line = element_line(colour = "grey")
+  )
+        title=("Proportional distribution of bacterial genera present in grey seal faeces") 
+```
+
+
+Breakdown of superkingdom reads in the stringent filtering by read category
+```{r}
+
+superkingdom_prop <- grey_seal_october2024_taxa_stringent2025%>% 
+  mutate(read.length.cat = ifelse(alignment.length > 5000, "read length >5000", 
+                                  ifelse(alignment.length < 1000, "read length <1000",
+                                         "read length 1000-5000"))) %>%
+  mutate(read.length.cat = factor(read.length.cat, 
+                                  levels = c("read length <1000", "read length 1000-5000", "read length >5000"))) %>%
+ group_by(superkingdom, read.length.cat) %>%
+  summarise(superkingdom_count = n()) %>%
+  mutate(prop =prop.table(superkingdom_count)) %>%
+  arrange(superkingdom, desc(prop)) 
+superkingdom_prop
+```
+
+Bisgaardia
+
+```{r}
+
+bacteria <- grey_seal_october2024_taxa_stringent2025 %>% 
+                    
+                    filter(superkingdom == "Bacteria")
+
+nrow(bacteria) #3,945
+nrow(grey_seal_october2024_taxa_stringent2025) #68775
+
+bisgaardia <- grey_seal_october2024_taxa_stringent2025 %>% 
+                    
+                    filter(genus == "Bisgaardia")
+
+
+
+nrow (bisgaardia) #2,342 prop = 2342/3945 = 59%
+
+
+
+
+bisgaardia_prop <- grey_seal_october2024_taxa_stringent2025 %>% 
+                    
+                    filter(genus == "Bisgaardia") %>%
+  group_by(species, genus) %>%
+  summarise(species_count = n()) %>%
+  mutate(prop =prop.table(species_count)) %>%
+  arrange(species, desc(prop)) only B. hudsonensis found, no other bisgaardia
+
+
+bisgaardia <- grey_seal_october2024_taxa_stringent2025 %>% 
+              
+  
+                    
+```
+

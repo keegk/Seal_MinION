@@ -95,6 +95,8 @@ We use two scripts to parse the concantenated blast text files from any of our q
 
 **Thesis results**
 
+to check number of final reads in grey seal fasta file before metagenomic / amr analysis - go to file location on cluster and in interactive job: grep -o 'read' cleaned_fasta.fasta  | wc -l
+
 In the notebook grey_seal_thesis_taxa_2025.Rmd, the final taxa (stringent filtering) is available and saved as the file rey_seal_october2024_taxa_stringent2025. This has the exact same taxa filtering as all other results chapters (proportional gaps/mismatches at 0.10, weighted mean etc).
 
 grey_seal_thesis_taxca2025.Rmd has the strict filtering to generate the final taxa dataset, then  bacterial genera plots and the table showing the breakdown of superkingdoms by read numbers. 
